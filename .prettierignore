@@ -1,0 +1,13 @@
+# Ignore artifacts:
+build
+coverage
+node_modules
+.prettierignore
+.stylelintignore
+.eslintignore
+stories
+storybook-static
+*.log
+playwright-report
+.nyc_output
+test-results
