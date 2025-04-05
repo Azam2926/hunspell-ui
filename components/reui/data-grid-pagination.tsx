@@ -1,15 +1,15 @@
 import { ReactNode } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { useDataGrid } from "@/components/ui/data-grid";
+import { Button } from "@/components/reui/button";
+import { useDataGrid } from "@/components/reui/data-grid";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/reui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface DataGridPaginationProps {
@@ -139,7 +139,7 @@ function DataGridPagination(props: DataGridPaginationProps) {
           mergedProps?.sizesSkeleton
         ) : (
           <>
-            <div className="text-sm text-muted-foreground">Rows per page</div>
+            <div className="text-muted-foreground text-sm">Rows per page</div>
             <Select
               value={`${pageSize}`}
               indicatorPosition="right"
@@ -167,7 +167,7 @@ function DataGridPagination(props: DataGridPaginationProps) {
           mergedProps?.infoSkeleton
         ) : (
           <>
-            <div className="order-2 text-nowrap text-sm text-muted-foreground sm:order-1">
+            <div className="text-muted-foreground order-2 text-sm text-nowrap sm:order-1">
               {paginationInfo}
             </div>
             {pageCount > 1 && (

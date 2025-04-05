@@ -24,8 +24,8 @@ import {
   Row,
 } from "@tanstack/react-table";
 import { GripVertical } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useDataGrid } from "@/components/ui/data-grid";
+import { Button } from "@/components/reui/button";
+import { useDataGrid } from "@/components/reui/data-grid";
 import {
   DataGridTableBase,
   DataGridTableBody,
@@ -40,7 +40,7 @@ import {
   DataGridTableHeadRowCell,
   DataGridTableHeadRowCellResize,
   DataGridTableRowSpacer,
-} from "@/components/ui/data-grid-table";
+} from "@/components/reui/data-grid-table";
 
 function DataGridTableDndHeader<TData>({
   header,

@@ -32,19 +32,36 @@ export const dictionaryEntries = pgTable(
       .notNull()
       .references(() => languages.id),
     word: varchar("word", { length: 256 }).notNull(),
-    affixFlags: varchar("affix_flags", { length: 30 })
+    sfxs: varchar("sfxs", { length: 30 })
       .array()
       .default(
         sql`ARRAY
         []::varchar[]`,
       )
       .$type<string[]>(), // Store multiple flags
+    pfxs: varchar("pfxs", { length: 30 })
+      .array()
+      .default(
+        sql`ARRAY
+        []::varchar[]`,
+      )
+      .$type<string[]>(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [
     // Ensure unique combination of word and langId
-    unique().on(table.word, table.langId, table.affixFlags),
+    unique().on(table.word, table.langId, table.sfxs, table.pfxs),
   ],
+);
+
+export const dictionaryEntriesRelations = relations(
+  dictionaryEntries,
+  ({ one }) => ({
+    language: one(languages, {
+      fields: [dictionaryEntries.langId],
+      references: [languages.id],
+    }),
+  }),
 );
 
 export const affixGroups = pgTable(

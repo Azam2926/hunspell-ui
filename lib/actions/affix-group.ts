@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { AffixGroup, affixGroups } from "@/lib/db/schema";
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { PaginationState } from "@tanstack/react-table";
 
 export async function getDataAction(
@@ -15,6 +15,22 @@ export async function getDataAction(
     .from(affixGroups)
     .limit(state.pageSize)
     .offset(state.pageIndex * state.pageSize);
+}
+
+export async function getSuffixesAction(): Promise<AffixGroup[]> {
+  return db
+    .select()
+    .from(affixGroups)
+    .where(eq(affixGroups.type, "SFX"))
+    .orderBy(affixGroups.flag);
+}
+
+export async function getPrefixesAction(): Promise<AffixGroup[]> {
+  return db
+    .select()
+    .from(affixGroups)
+    .where(eq(affixGroups.type, "PFX"))
+    .orderBy(affixGroups.flag);
 }
 
 export async function getCountAction() {

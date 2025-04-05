@@ -4,7 +4,12 @@ import path from "path";
 import fs from "fs";
 import Dictionary, { Rule } from "@/lib/dictionary-typescript";
 import { db } from "@/lib/db";
-import { affixGroups, affixRules } from "@/lib/db/schema";
+import {
+  affixGroups,
+  affixRules,
+  NewAffixGroup,
+  NewAffixRule,
+} from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 
 const DICTIONARY_BASE_PATH = path.join(process.cwd(), "dictionaries");
@@ -16,11 +21,11 @@ export async function syncDicFileAction(language: string) {
   }
 
   try {
-    const filePath = path.join(
-      DICTIONARY_BASE_PATH,
-      `${language}`,
-      `${language}.dic`,
-    );
+    // const filePath = path.join(
+    //   DICTIONARY_BASE_PATH,
+    //   `${language}`,
+    //   `${language}.dic`,
+    // );
     // const content = await fs.readFile(filePath, "utf8");
     // const lines = content
     //   .split("\n")
@@ -40,14 +45,14 @@ export async function syncDicFileAction(language: string) {
     // Optionally, you can add conflict handling if you have a unique constraint.
     // For example, you might use an upsert or filter out duplicates before inserting.
 
-    const sp = new Dictionary();
+    // const sp = new Dictionary();
 
-    const parseDIC = sp._parseDIC(fs.readFileSync(filePath, "utf8"));
+    // const parseDIC = sp._parseDIC(fs.readFileSync(filePath, "utf8"));
 
     return { success: true, count: 0 };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error syncing .dic file:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error };
   }
 }
 
@@ -67,12 +72,7 @@ export async function syncAffFileAction(language: string) {
     const parsedAFF: Record<string, Rule> = sp._parseAFF(
       fs.readFileSync(filePath, "utf8"),
     );
-    const affixRuleEntries: {
-      groupId: number;
-      add?: string;
-      omit?: string;
-      match?: string;
-    }[] = [];
+    const affixRuleEntries: NewAffixRule[] = [];
 
     await db.transaction(async (tx) => {
       for (const flag in parsedAFF) {
@@ -86,7 +86,8 @@ export async function syncAffFileAction(language: string) {
             type: rule.type,
             flag,
             multiUse: rule.combineable,
-          })
+            description: "",
+          } as NewAffixGroup)
           .onConflictDoNothing()
           .returning({ groupId: affixGroups.id });
 
@@ -100,7 +101,7 @@ export async function syncAffFileAction(language: string) {
               .where(
                 and(
                   eq(affixGroups.lang_id, 1), // Ensure correct language
-                  eq(affixGroups.type, rule.type), // Ensure correct affix type (PFX/SFX)
+                  eq(affixGroups.type, rule.type as "SFX" | "PFX"), // Ensure correct affix type (PFX/SFX)
                   eq(affixGroups.flag, flag), // Ensure correct flag
                 ),
               )
@@ -112,9 +113,9 @@ export async function syncAffFileAction(language: string) {
         rule.entries.forEach((entry) => {
           affixRuleEntries.push({
             groupId: finalGroupId,
-            add: entry.add,
-            omit: entry.remove?.toString(),
-            match: entry.match?.toString(),
+            add: entry.add || "",
+            omit: entry.remove?.toString() || "",
+            match: entry.match?.toString() || "",
           });
         });
       }
@@ -126,8 +127,8 @@ export async function syncAffFileAction(language: string) {
     });
 
     return { success: true, count: affixRuleEntries.length };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error syncing .aff file:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error };
   }
 }

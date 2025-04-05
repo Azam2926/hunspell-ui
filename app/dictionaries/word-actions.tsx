@@ -11,10 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { WordForm } from "./word-form";
 import { DeleteWordDialog } from "./delete-word-dialog";
-import { DictionaryEntry } from "@/lib/db/schema";
+import { DictionaryData } from "@/lib/actions/dictionary";
 
 interface WordActionsProps {
-  word: DictionaryEntry;
+  word: DictionaryData;
 }
 
 export function WordActions({ word }: WordActionsProps) {
@@ -53,8 +53,9 @@ export function WordActions({ word }: WordActionsProps) {
         initialData={{
           id: word.id,
           word: word.word,
-          langId: word.langId,
-          affixFlags: word.affixFlags || [""],
+          langId: word.language.id,
+          sfxs: word.sfxs || [""],
+          pfxs: word.pfxs || [""],
         }}
       />
 

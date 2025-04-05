@@ -19,8 +19,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Cell, flexRender, HeaderGroup, Row } from "@tanstack/react-table";
 import { GripHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useDataGrid } from "@/components/ui/data-grid";
+import { Button } from "@/components/reui/button";
+import { useDataGrid } from "@/components/reui/data-grid";
 import {
   DataGridTableBase,
   DataGridTableBody,
@@ -34,7 +34,7 @@ import {
   DataGridTableHeadRowCell,
   DataGridTableHeadRowCellResize,
   DataGridTableRowSpacer,
-} from "@/components/ui/data-grid-table";
+} from "@/components/reui/data-grid-table";
 
 function DataGridTableDndRowHandle({ rowId }: { rowId: string }) {
   const { attributes, listeners } = useSortable({

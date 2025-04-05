@@ -13,8 +13,8 @@ import {
   Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { useDataGrid } from "@/components/ui/data-grid";
+import { Button } from "@/components/reui/button";
+import { useDataGrid } from "@/components/reui/data-grid";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -84,7 +84,7 @@ function DataGridColumnHeader<TData, TValue>({
     return (
       <div
         className={cn(
-          "inline-flex h-full items-center gap-1.5 text-[0.8125rem] font-normal leading-[calc(1.125/0.8125)] text-accent-foreground [&_svg]:size-3.5 [&_svg]:opacity-60",
+          "text-accent-foreground inline-flex h-full items-center gap-1.5 text-[0.8125rem] leading-[calc(1.125/0.8125)] font-normal [&_svg]:size-3.5 [&_svg]:opacity-60",
           className,
         )}
       >
@@ -99,7 +99,7 @@ function DataGridColumnHeader<TData, TValue>({
       <Button
         variant="ghost"
         className={cn(
-          "-ms-2 h-7 rounded-sm px-2 font-normal text-accent-foreground hover:bg-secondary hover:text-secondary-foreground data-[state=open]:bg-secondary data-[state=open]:text-secondary-foreground",
+          "text-accent-foreground hover:bg-secondary hover:text-secondary-foreground data-[state=open]:bg-secondary data-[state=open]:text-secondary-foreground -ms-2 h-7 rounded-sm px-2 font-normal",
           className,
         )}
         disabled={isLoading || recordCount === 0}
@@ -119,11 +119,11 @@ function DataGridColumnHeader<TData, TValue>({
 
         {column.getCanSort() &&
           (column.getIsSorted() === "desc" ? (
-            <ArrowDown className="size-[0.7rem]! mt-px" />
+            <ArrowDown className="mt-px size-[0.7rem]!" />
           ) : column.getIsSorted() === "asc" ? (
-            <ArrowUp className="size-[0.7rem]! mt-px" />
+            <ArrowUp className="mt-px size-[0.7rem]!" />
           ) : (
-            <ChevronsUpDown className="size-[0.7rem]! mt-px" />
+            <ChevronsUpDown className="mt-px size-[0.7rem]!" />
           ))}
       </Button>
     );
@@ -173,7 +173,7 @@ function DataGridColumnHeader<TData, TValue>({
                   <ArrowUp className="size-3.5!" />
                   <span className="grow">Asc</span>
                   {column.getIsSorted() === "asc" && (
-                    <Check className="opacity-100! size-4 text-primary" />
+                    <Check className="text-primary size-4 opacity-100!" />
                   )}
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -189,7 +189,7 @@ function DataGridColumnHeader<TData, TValue>({
                   <ArrowDown className="size-3.5!" />
                   <span className="grow">Desc</span>
                   {column.getIsSorted() === "desc" && (
-                    <Check className="opacity-100! size-4 text-primary" />
+                    <Check className="text-primary size-4 opacity-100!" />
                   )}
                 </DropdownMenuItem>
               </>
@@ -210,7 +210,7 @@ function DataGridColumnHeader<TData, TValue>({
                   <ArrowLeftToLine className="size-3.5!" aria-hidden="true" />
                   <span className="grow">Pin to left</span>
                   {column.getIsPinned() === "left" && (
-                    <Check className="opacity-100! size-4 text-primary" />
+                    <Check className="text-primary size-4 opacity-100!" />
                   )}
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -223,7 +223,7 @@ function DataGridColumnHeader<TData, TValue>({
                   <ArrowRightToLine className="size-3.5!" aria-hidden="true" />
                   <span className="grow">Pin to right</span>
                   {column.getIsPinned() === "right" && (
-                    <Check className="opacity-100! size-4 text-primary" />
+                    <Check className="text-primary size-4 opacity-100!" />
                   )}
                 </DropdownMenuItem>
               </>

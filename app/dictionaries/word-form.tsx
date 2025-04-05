@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,18 +36,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { addAction, updateAction } from "@/lib/actions/dictionary";
-import { getDataAction as getAffixData } from "@/lib/actions/affix-group";
+import {
+  getPrefixesAction,
+  getSuffixesAction,
+} from "@/lib/actions/affix-group";
 import { toast } from "sonner";
-import { AffixGroup } from "@/lib/db/schema";
+import { AffixFlagsSelect } from "./affix-select";
+import { AffixGroup } from "@/lib/db/schema"; // Define the form schema
 
 // Define the form schema
 const formSchema = z.object({
   word: z.string().min(1, "Word is required"),
   langId: z.number().min(1, "Language is required"),
-  affixFlags: z.array(z.string()).optional(),
+  sfxs: z.array(z.string()).optional(),
+  pfxs: z.array(z.string()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -58,7 +62,10 @@ const languages = [
   { id: 2, name: "Spanish", code: "es" },
 ];
 
-let affixGroups: AffixGroup[] = [];
+let affixGroups: { sfxs: AffixGroup[]; pfxs: AffixGroup[] } = {
+  sfxs: [],
+  pfxs: [],
+};
 
 interface WordFormProps {
   open: boolean;
@@ -68,7 +75,8 @@ interface WordFormProps {
     id: number;
     word: string;
     langId: number;
-    affixFlags: string[];
+    sfxs: string[];
+    pfxs: string[];
   };
 }
 
@@ -78,15 +86,13 @@ export function WordForm({
   editMode = false,
   initialData,
 }: WordFormProps) {
-  const [selectedAffixFlags, setSelectedAffixFlags] = useState<string[]>([]);
-  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-  const [tempSelectedFlags, setTempSelectedFlags] = useState<string[]>([]);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       word: initialData?.word || "",
       langId: initialData?.langId || 0,
-      affixFlags: initialData?.affixFlags || [],
+      sfxs: initialData?.sfxs || ["ABC"],
+      pfxs: initialData?.pfxs || ["A"],
     },
   });
 
@@ -94,9 +100,12 @@ export function WordForm({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [fetchedData] = await Promise.all([getAffixData()]);
-        console.log("fetchedData", fetchedData);
-        affixGroups = fetchedData;
+        const [sfxs, pfxs] = await Promise.all([
+          getSuffixesAction(),
+          getPrefixesAction(),
+        ]);
+        affixGroups.sfxs = sfxs;
+        affixGroups.pfxs = pfxs;
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -111,16 +120,15 @@ export function WordForm({
       form.reset({
         word: initialData.word,
         langId: initialData.langId,
-        affixFlags: initialData.affixFlags,
+        sfxs: initialData.sfxs,
+        pfxs: initialData.pfxs,
       });
-      setSelectedAffixFlags(initialData.affixFlags || []);
     }
   }, [initialData, form, open]);
 
   const onSubmit = async (values: FormValues) => {
     try {
       // Include the selected affix flags
-      values.affixFlags = selectedAffixFlags;
 
       if (editMode && initialData) {
         // Update existing entry
@@ -138,9 +146,6 @@ export function WordForm({
 
       // Reset form and close dialog
       form.reset();
-      setSelectedAffixFlags([]);
-      setIsCreatingGroup(false);
-      setTempSelectedFlags([]);
       onOpenChange(false);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
@@ -149,52 +154,6 @@ export function WordForm({
           ? "Failed to update word."
           : "Failed to add word to dictionary.",
       });
-    }
-  };
-
-  const handleAffixFlagSelect = (flag: string) => {
-    if (isCreatingGroup) {
-      // Add to temporary selection for group creation
-      setTempSelectedFlags((prev) => {
-        if (prev.includes(flag)) {
-          return prev.filter((f) => f !== flag);
-        } else {
-          return [...prev, flag];
-        }
-      });
-    } else {
-      // Add as individual flag
-      setSelectedAffixFlags((prev) => {
-        if (prev.includes(flag)) {
-          return prev.filter((f) => f !== flag);
-        } else {
-          return [...prev, flag];
-        }
-      });
-    }
-  };
-
-  const removeAffixFlag = (flag: string) => {
-    setSelectedAffixFlags((prev) => prev.filter((f) => f !== flag));
-  };
-
-  const startGroupCreation = () => {
-    setIsCreatingGroup(true);
-    setTempSelectedFlags([]);
-  };
-
-  const cancelGroupCreation = () => {
-    setIsCreatingGroup(false);
-    setTempSelectedFlags([]);
-  };
-
-  const saveGroup = () => {
-    if (tempSelectedFlags.length > 0) {
-      // Sort and concatenate the flags
-      const groupFlag = tempSelectedFlags.sort().join("");
-      setSelectedAffixFlags((prev) => [...prev, groupFlag]);
-      setIsCreatingGroup(false);
-      setTempSelectedFlags([]);
     }
   };
 
@@ -285,144 +244,36 @@ export function WordForm({
               )}
             />
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <FormLabel>Affix Flags</FormLabel>
-                {!isCreatingGroup ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={startGroupCreation}
-                    className="h-8"
-                  >
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Create Group
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={cancelGroupCreation}
-                      className="h-8"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      onClick={saveGroup}
-                      className="h-8"
-                      disabled={tempSelectedFlags.length === 0}
-                    >
-                      Save Group
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {isCreatingGroup && (
-                <div className="bg-muted/30 mb-2 rounded-md border p-2">
-                  <p className="mb-2 text-sm">
-                    Select multiple flags to create a group:
-                    {tempSelectedFlags.length > 0 && (
-                      <span className="ml-1 font-semibold">
-                        {tempSelectedFlags.sort().join("")}
-                      </span>
-                    )}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {tempSelectedFlags.map((flag) => (
-                      <Badge
-                        key={flag}
-                        variant="secondary"
-                        className="flex items-center gap-1"
-                      >
-                        {flag}
-                        <X
-                          className="h-3 w-3 cursor-pointer"
-                          onClick={() =>
-                            setTempSelectedFlags((prev) =>
-                              prev.filter((f) => f !== flag),
-                            )
-                          }
-                        />
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+            <FormField
+              control={form.control}
+              name="sfxs"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Suffix Flags</FormLabel>
+                  <AffixFlagsSelect
+                    affixGroups={affixGroups.sfxs}
+                    flags={field.value}
+                    onChange={(v) => form.setValue("sfxs", v)}
+                  />
+                  <FormMessage />
+                </FormItem>
               )}
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between"
-                  >
-                    {isCreatingGroup
-                      ? "Select flags for group"
-                      : "Select affix flags"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search affix flags..." />
-                    <CommandList>
-                      <CommandEmpty>No affix flag found.</CommandEmpty>
-                      <CommandGroup>
-                        {affixGroups.map((group) => (
-                          <CommandItem
-                            key={group.id}
-                            value={group.flag}
-                            onSelect={() => handleAffixFlagSelect(group.flag)}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                isCreatingGroup
-                                  ? tempSelectedFlags.includes(group.flag)
-                                  : selectedAffixFlags.includes(group.flag)
-                                    ? "opacity-100"
-                                    : "opacity-0",
-                              )}
-                            />
-                            {group.flag} ({group.type}) - {group.description}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-
-              {selectedAffixFlags.length > 0 && !isCreatingGroup && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedAffixFlags.map((flag) => (
-                    <Badge
-                      key={flag}
-                      variant="secondary"
-                      className="flex items-center gap-1"
-                    >
-                      {flag.length > 1 ? (
-                        <span className="font-semibold">{flag}</span>
-                      ) : (
-                        flag
-                      )}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removeAffixFlag(flag)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
+            />
+            <FormField
+              control={form.control}
+              name="pfxs"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prefix Flags</FormLabel>
+                  <AffixFlagsSelect
+                    affixGroups={affixGroups.pfxs}
+                    flags={field.value}
+                    onChange={(v) => form.setValue("pfxs", v)}
+                  />
+                  <FormMessage />
+                </FormItem>
               )}
-            </div>
-
+            />
             <DialogFooter>
               <Button type="submit">{editMode ? "Update" : "Add Word"}</Button>
             </DialogFooter>
