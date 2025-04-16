@@ -22,14 +22,14 @@ import {
 } from "@/lib/actions/affix-group";
 import { toast } from "sonner";
 import { AffixFlagsSelect } from "./affix-select";
-import { AffixGroup } from "@/lib/db/schema";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"; // Define the form schema
+} from "@/components/ui/card";
+import { AffixGroup } from "@/lib/db/schema"; // Define the form schema
 
 // Define the form schema
 const formSchema = z.object({
@@ -53,17 +53,19 @@ interface WordFormProps {
 }
 
 export function AddWordForm({ editMode = false, initialData }: WordFormProps) {
-  const [affixGroups, setAffixGroups] = useState({ sfxs: [], pfxs: [] });
+  const [affixGroups, setAffixGroups] = useState<{
+    sfxs: AffixGroup[];
+    pfxs: AffixGroup[];
+  }>({ sfxs: [], pfxs: [] });
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       word: initialData?.word || "",
       langId: initialData?.langId || 1,
-      sfxs: initialData?.sfxs || ["ABC"],
-      pfxs: initialData?.pfxs || ["A"],
+      sfxs: initialData?.sfxs || [],
+      pfxs: initialData?.pfxs || [],
     },
   });
-
   // Fetch data and total count
   useEffect(() => {
     const fetchData = async () => {
