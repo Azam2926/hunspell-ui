@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { dictionaryEntries, languages } from "@/lib/db/schema";
-import { AnyColumn, asc, count, desc, eq, ilike } from "drizzle-orm";
+import { dictionaryEntries, Language, languages } from "@/lib/db/schema";
+import { and, AnyColumn, asc, count, desc, eq, ilike } from "drizzle-orm";
 import { PaginationState, SortingState } from "@tanstack/react-table";
 import { revalidatePath } from "next/cache";
 
@@ -16,11 +16,12 @@ export type DictionaryData = {
 };
 
 export async function getDataAction(
+  language: Language,
   search: string,
   sorting: SortingState,
   state?: PaginationState,
 ): Promise<DictionaryData[]> {
-  console.log("Search:", search);
+  console.log("language2:", language);
   if (!sorting || sorting?.length === 0) {
     sorting = [{ id: "id", desc: true }];
   }
@@ -46,7 +47,12 @@ export async function getDataAction(
     return db
       .select(selects)
       .from(dictionaryEntries)
-      .where(ilike(dictionaryEntries.word, `%${search}%`))
+      .where(
+        and(
+          ilike(dictionaryEntries.word, `%${search}%`),
+          eq(dictionaryEntries.langId, language.id),
+        ),
+      )
       .orderBy(
         ...sorting?.map((sort) =>
           sort.desc
@@ -59,7 +65,12 @@ export async function getDataAction(
   return db
     .select(selects)
     .from(dictionaryEntries)
-    .where(ilike(dictionaryEntries.word, `%${search}%`))
+    .where(
+      and(
+        ilike(dictionaryEntries.word, `%${search}%`),
+        eq(dictionaryEntries.langId, language.id),
+      ),
+    )
     .orderBy(
       ...sorting?.map((sort) =>
         sort.desc
@@ -72,8 +83,16 @@ export async function getDataAction(
     .innerJoin(languages, eq(dictionaryEntries.langId, languages.id));
 }
 
-export async function getCountAction() {
-  const [result] = await db.select({ count: count() }).from(dictionaryEntries);
+export async function getCountAction(language: Language, searchTerm: string) {
+  const [result] = await db
+    .select({ count: count() })
+    .from(dictionaryEntries)
+    .where(
+      and(
+        ilike(dictionaryEntries.word, `%${searchTerm}%`),
+        eq(dictionaryEntries.langId, language.id),
+      ),
+    );
   return result.count;
 }
 

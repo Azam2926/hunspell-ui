@@ -1,85 +1,33 @@
 import { AddWordForm } from "@/app/dictionaries/add-word-form";
-import {
-  getPrefixesAction,
-  getSuffixesAction,
-} from "@/lib/actions/affix-group";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Suspense } from "react";
 import WordsTable from "@/app/dictionaries/table";
 import { getCountAction, getDataAction } from "@/lib/actions/dictionary";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import AffixTable from "@/app/dictionaries/affix-table";
 
 export default async function Page() {
-  const affixGroups = {
-    sfxs: await getSuffixesAction(),
-    pfxs: await getPrefixesAction(),
-  };
-  console.log("affixGroups asdad", affixGroups);
   return (
     <div className="px-4">
-      <div className="mb-10 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="mb-6 text-3xl font-bold">Dictionaries</h1>
+          <h1 className="mb-2 text-3xl font-bold">Lug&#39;at</h1>
           <p className="text-muted-foreground mb-8">
-            Manage words in the dictionary
+            Lug&#39;atdagi so&apos;zlarni boshqarish
           </p>
         </div>
+        Umumiy so'zlar 1554
       </div>
 
       <div className="flex flex-col gap-4">
         <div className="flex justify-between gap-4">
           <AddWordForm />
-          <div className="flex grow gap-2">
-            <Card className="w-full">
-              <CardHeader>Prefixes</CardHeader>
-              <CardContent>
-                <Table>
-                  <TableBody>
-                    {affixGroups.pfxs.map((affx) => (
-                      <TableRow key={affx.id}>
-                        <TableCell className="font-medium">
-                          {affx.flag}
-                        </TableCell>
-                        <TableCell>{affx.description}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-            <Card className="w-full">
-              <CardHeader>Suffixes</CardHeader>
-              <CardContent>
-                <Table>
-                  <TableBody>
-                    {affixGroups.sfxs.map((affx) => (
-                      <TableRow key={affx.id}>
-                        <TableCell className="font-medium">
-                          {affx.flag}
-                        </TableCell>
-                        <TableCell>{affx.description}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+          <AffixTable />
         </div>
-        <Suspense fallback={<div>Loading...</div>}>
-          <WordsTable
-            getDataAction={getDataAction}
-            getCountAction={getCountAction}
-          />
-        </Suspense>
+        {/*<Suspense fallback={<div>Loading...</div>}>*/}
+        {/*  <WordsTable*/}
+        {/*    getDataAction={getDataAction}*/}
+        {/*    getCountAction={getCountAction}*/}
+        {/*  />*/}
+        {/*</Suspense>*/}
       </div>
     </div>
   );

@@ -26,11 +26,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import Link from "next/link";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "A'zam",
+    email: "azam@markaz.uz",
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
@@ -40,84 +41,26 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Dictionaries",
+      title: "Lug'at",
       url: "/dictionaries",
       icon: IconListDetails,
     },
     {
-      title: "Affix Groups",
+      title: "Affix Guruhlar",
       url: "/affixes/groups",
       icon: IconChartBar,
     },
     {
-      title: "Affix Rules",
+      title: "Affix Qoidalari",
       url: "/affixes/rules",
       icon: IconFolder,
     },
   ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
+      title: "Yordam oling",
       url: "#",
       icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
     },
   ],
 };
@@ -132,10 +75,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <Link href="/">
                 <IconInnerShadowTop className="!size-5" />
                 <span className="text-base font-semibold">Hunspell UI</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,11 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { AffixGroup, affixGroups } from "@/lib/db/schema";
-import { count, eq } from "drizzle-orm";
+import { AffixGroup, affixGroups, Language } from "@/lib/db/schema";
+import { and, count, eq } from "drizzle-orm";
 import { PaginationState } from "@tanstack/react-table";
 
 export async function getDataAction(
+  language: Language,
   state?: PaginationState,
 ): Promise<AffixGroup[]> {
   if (!state) return db.select().from(affixGroups);
@@ -13,27 +14,39 @@ export async function getDataAction(
   return db
     .select()
     .from(affixGroups)
+    .where(eq(affixGroups.lang_id, language.id))
     .limit(state.pageSize)
     .offset(state.pageIndex * state.pageSize);
 }
 
-export async function getSuffixesAction(): Promise<AffixGroup[]> {
+export async function getSuffixesAction(
+  language: Language,
+): Promise<AffixGroup[]> {
   return db
     .select()
     .from(affixGroups)
-    .where(eq(affixGroups.type, "SFX"))
+    .where(
+      and(eq(affixGroups.type, "SFX"), eq(affixGroups.lang_id, language.id)),
+    )
     .orderBy(affixGroups.flag);
 }
 
-export async function getPrefixesAction(): Promise<AffixGroup[]> {
+export async function getPrefixesAction(
+  language: Language,
+): Promise<AffixGroup[]> {
   return db
     .select()
     .from(affixGroups)
-    .where(eq(affixGroups.type, "PFX"))
+    .where(
+      and(eq(affixGroups.type, "PFX"), eq(affixGroups.lang_id, language.id)),
+    )
     .orderBy(affixGroups.flag);
 }
 
-export async function getCountAction() {
-  const [result] = await db.select({ count: count() }).from(affixGroups);
+export async function getCountAction(language: Language) {
+  const [result] = await db
+    .select({ count: count() })
+    .from(affixGroups)
+    .where(eq(affixGroups.lang_id, language.id));
   return result.count;
 }

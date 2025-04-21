@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { WordForm } from "@/app/dictionaries/word-form";
+import { WordForm } from "@/app/dictionaries/components/word-form";
 
 export default function AddWordButton() {
   const [isAddWordOpen, setIsAddWordOpen] = useState(false);

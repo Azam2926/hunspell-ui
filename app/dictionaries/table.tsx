@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useDebounce } from "@uidotdev/usehooks";
 import {
   ColumnDef,
@@ -11,25 +11,28 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
+import useSWR from "swr";
 import { DataGrid, DataGridContainer } from "@/components/reui/data-grid";
 import { DataGridPagination } from "@/components/reui/data-grid-pagination";
 import { DataGridTable } from "@/components/reui/data-grid-table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { WordActions } from "@/app/dictionaries/word-actions";
+import { WordActions } from "@/app/dictionaries/components/word-actions";
 import { DictionaryData } from "@/lib/actions/dictionary";
 import { DataGridColumnHeader } from "@/components/reui/data-grid-column-header";
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/reui/input";
 import { Button } from "@/components/reui/button";
-import { toast } from "sonner";
+import { useLanguage } from "@/contexts/language/LanguageContext";
+import { Language } from "@/lib/db/schema";
+import { SearchWord } from "@/app/dictionaries/components/search-word";
+import Syncer from "@/app/dictionaries/components/syncer";
 
 interface WordsTableProps {
   getDataAction: (
+    language: Language,
     search: string,
     sorting: SortingState,
     state: PaginationState,
   ) => Promise<DictionaryData[]>;
-  getCountAction: (search: string) => Promise<number>;
+  getCountAction: (language: Language, search: string) => Promise<number>;
 }
 
 export default function WordsTable({
@@ -37,58 +40,81 @@ export default function WordsTable({
   getCountAction,
 }: WordsTableProps) {
   // State management
-  const [data, setData] = useState<DictionaryData[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "word", desc: false },
+  ]);
   const [search, setSearch] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Debounce search for better performance
-  const debouncedSearchTerm = useDebounce(search, 300);
+  const debouncedSearchTerm = useDebounce(search, 2000);
 
-  // Fetch data handler
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const { currentLanguage } = useLanguage();
 
-    try {
-      // Fetch both data and count with the same search term
-      const [fetchedData, count] = await Promise.all([
-        getDataAction(debouncedSearchTerm, sorting, pagination),
-        getCountAction(debouncedSearchTerm),
-      ]);
+  // Create a key for SWR that includes all relevant parameters
+  const swrKey = currentLanguage
+    ? [
+        "words",
+        currentLanguage.id,
+        debouncedSearchTerm,
+        JSON.stringify(sorting),
+        pagination.pageIndex,
+        pagination.pageSize,
+      ]
+    : null;
 
-      setData(fetchedData);
-      setTotalCount(count);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      setError("Failed to load data. Please try again.");
-      toast.error("Failed to load data");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [debouncedSearchTerm, getCountAction, getDataAction, pagination, sorting]);
+  // Data fetching function for SWR
+  const fetcher = async ([
+    _,
+    langId,
+    searchTerm,
+    sortingStr,
+    pageIndex,
+    pageSize,
+  ]: any[]) => {
+    if (!currentLanguage) return { data: [], count: 0 };
+    console.log("currentLanguage inside", currentLanguage);
+    const parsedSorting = JSON.parse(sortingStr) as SortingState;
 
-  // Effect for data fetching
-  useEffect(() => {
-    fetchData();
-    // We don't want to show a toast on initial load or every data fetch
-  }, [fetchData]);
+    const [data, count] = await Promise.all([
+      getDataAction(currentLanguage, searchTerm, parsedSorting, {
+        pageIndex,
+        pageSize,
+      }),
+      getCountAction(currentLanguage, searchTerm),
+    ]);
+
+    return { data, count };
+  };
+
+  // Data fetching with SWR
+  const {
+    data: wordsData,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWR(swrKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000, // 30 seconds
+    keepPreviousData: true,
+  });
+
+  // Extract data and count from SWR result
+  const data = wordsData?.data ?? [];
+  const totalCount = wordsData?.count ?? 0;
 
   // Handle search clearing
-  const handleClearSearch = useCallback(() => {
-    setSearch("");
+  const handleClearSearch = () => {
     // Reset to first page when clearing search
     setPagination((prev) => ({
       ...prev,
       pageIndex: 0,
     }));
-  }, []);
+  };
 
   // Memoized columns definition
   const columns = useMemo<ColumnDef<DictionaryData>[]>(
@@ -107,7 +133,7 @@ export default function WordsTable({
         accessorKey: "word",
         header: ({ column }) => (
           <DataGridColumnHeader
-            title="Word"
+            title="So'z"
             visibility={true}
             column={column}
           />
@@ -139,7 +165,12 @@ export default function WordsTable({
       },
       {
         id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
+        header: () => (
+          <div>
+            <p>Harakatlar</p>
+            <span className="sr-only">Actions</span>
+          </div>
+        ),
         cell: (info) => <WordActions word={info.row.original} />,
       },
     ],
@@ -162,91 +193,64 @@ export default function WordsTable({
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    // Add default sorting to ensure consistent results
-    initialState: {
-      sorting: [{ id: "word", desc: false }],
-    },
   });
 
   // Handler for search input
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearch(e.target.value);
-      // Reset to first page when search changes
-      setPagination((prev) => ({
-        ...prev,
-        pageIndex: 0,
-      }));
-    },
-    [],
-  );
+  const handleSearchChange = (debouncedValue: string) => {
+    setSearch(debouncedValue);
+    // Reset to first page when search changes
+    setPagination((prev) => ({
+      ...prev,
+      pageIndex: 0,
+    }));
+  };
 
-  // Retry handler for error state
-  const handleRetry = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
+  // Determine if we're in a loading state (initial load or validating)
+  const isTableLoading = isLoading || isValidating;
 
   return (
     <DataGrid table={table} recordCount={totalCount}>
       <div className="w-full space-y-2.5">
         {/* Search box with accessibility improvements */}
-        <div className="relative">
-          <Search
-            className="text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2"
-            aria-hidden="true"
-          />
-          <Input
-            placeholder="Search words..."
+        <div className="flex items-center justify-between space-x-2.5">
+          <SearchWord
             value={search}
+            onClear={handleClearSearch}
             onChange={handleSearchChange}
-            className="w-40 ps-9"
-            aria-label="Search words"
+            placeholder="So'zlarni qidirish"
             disabled={isLoading}
-            // Add keyboard support
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                handleClearSearch();
-              }
-            }}
+            autoFocus
+            debounceMs={300} // Optional: customize debounce delay (default is 300ms)
           />
-          {search.length > 0 && (
-            <Button
-              mode="icon"
-              variant="ghost"
-              className="absolute end-1.5 top-1/2 h-6 w-6 -translate-y-1/2"
-              onClick={handleClearSearch}
-              aria-label="Clear search"
-              disabled={isLoading}
-            >
-              <X />
-            </Button>
-          )}
-        </div>
 
-        {/* Error message */}
-        {error && (
-          <div className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
-            <span>{error}</span>
-            <Button size="sm" onClick={handleRetry}>
-              Retry
-            </Button>
-          </div>
-        )}
+          {/* Error message */}
+          {error && (
+            <div className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
+              <span>Failed to load data. Please try again.</span>
+              <Button size="sm" onClick={() => mutate()}>
+                Retry
+              </Button>
+            </div>
+          )}
+
+          <Syncer />
+        </div>
 
         {/* Loading and empty states */}
         <DataGridContainer>
           <ScrollArea>
-            {isLoading && data.length === 0 ? (
+            {isTableLoading && data?.length === 0 ? (
               <div className="text-muted-foreground py-8 text-center">
                 Loading data...
               </div>
-            ) : data.length === 0 && !isLoading ? (
+            ) : data?.length === 0 && !isTableLoading ? (
               <div className="text-muted-foreground py-8 text-center">
-                No results found. Try adjusting your search.
+                Natijalar topilmadi. Qidiruv so&apos;rovingizni o&apos;zgartirib
+                ko&apos;ring.
               </div>
             ) : (
               <>
-                <DataGridTable aria-busy={isLoading} />
+                <DataGridTable aria-busy={isTableLoading} />
                 <ScrollBar orientation="horizontal" />
               </>
             )}
@@ -254,7 +258,7 @@ export default function WordsTable({
         </DataGridContainer>
 
         {/* Only show pagination when we have data or after searching */}
-        {(data.length > 0 || debouncedSearchTerm.length > 0) && (
+        {(data?.length > 0 || debouncedSearchTerm.length > 0) && (
           <DataGridPagination />
         )}
       </div>

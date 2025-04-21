@@ -7,56 +7,67 @@ import { db } from "@/lib/db";
 import {
   affixGroups,
   affixRules,
+  dictionaryEntries,
+  Language,
   NewAffixGroup,
   NewAffixRule,
+  NewDictionaryEntry,
 } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
+import { formatLanguageIdentifier } from "../utils";
 
 const DICTIONARY_BASE_PATH = path.join(process.cwd(), "dictionaries");
+const DICTIONARY_BASE_PATH_EXPORTED = path.join(
+  process.cwd(),
+  "dictionaries_exported",
+);
 
-export async function syncDicFileAction(language: string) {
+export async function syncDicFileAction(language: Language) {
   // Validate parameters to prevent directory traversal attacks
-  if (!["uz_Latn_UZ", "uz_Cyrl_UZ"].includes(language)) {
+  const lang_name_code = formatLanguageIdentifier(language);
+  if (!["uz_Latn_UZ", "uz_Cyrl_UZ"].includes(lang_name_code)) {
     return { success: false, error: "Invalid language or type" };
   }
-
+  console.log("lang_name_code", lang_name_code);
   try {
-    // const filePath = path.join(
-    //   DICTIONARY_BASE_PATH,
-    //   `${language}`,
-    //   `${language}.dic`,
-    // );
-    // const content = await fs.readFile(filePath, "utf8");
-    // const lines = content
-    //   .split("\n")
-    //   .map((line) => line.trim())
-    //   .filter((line) => line.length > 0);
-    //
-    // // The first line is the word count so skip it.
-    // const [countLine, ...entries] = lines;
-    //
-    // // Parse each dictionary entry.
-    // // Each line is expected in the form: word/flags (or just word)
-    // const wordEntries = entries.map(async (entry) => {
-    //   const [word, flags] = entry.split("/");
-    //   await db.insert(words).values({ value: word, script: language, flags });
-    // });
+    const filePath = path.join(
+      DICTIONARY_BASE_PATH,
+      `${lang_name_code}`,
+      `${lang_name_code}.dic`,
+    );
 
-    // Optionally, you can add conflict handling if you have a unique constraint.
-    // For example, you might use an upsert or filter out duplicates before inserting.
+    const sp = new Dictionary();
+    let count = 0;
+    const parseDIC = sp._parseDIC(fs.readFileSync(filePath, "utf8"));
+    for (const [word, outerArrays] of Object.entries(parseDIC)) {
+      const sfxs = outerArrays.map((innerArray) => {
+        if (Array.isArray(innerArray)) {
+          return innerArray.join("");
+        }
+        return innerArray;
+      });
 
-    // const sp = new Dictionary();
+      await saveDictionaryEntries([
+        {
+          word,
+          langId: language.id,
+          sfxs: sfxs,
+        },
+      ]);
+      count++;
+    }
 
-    // const parseDIC = sp._parseDIC(fs.readFileSync(filePath, "utf8"));
+    // await db.insert(dictionaryEntries).values(values);
 
-    return { success: true, count: 0 };
+    return { success: true, count };
   } catch (error) {
     console.error("Error syncing .dic file:", error);
     return { success: false, error: error };
   }
 }
 
-export async function syncAffFileAction(language: string) {
+export async function countWordsAction(language: string) {
+  // Validate parameters to prevent directory traversal attacks
   if (!["uz_Latn_UZ", "uz_Cyrl_UZ"].includes(language)) {
     return { success: false, error: "Invalid language or type" };
   }
@@ -64,8 +75,106 @@ export async function syncAffFileAction(language: string) {
   try {
     const filePath = path.join(
       DICTIONARY_BASE_PATH,
-      language,
-      `${language}.aff`,
+      `${language}`,
+      `${language}.dic`,
+    );
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    // The first line is the word count so skip it.
+    const [countLine, ...entries] = lines;
+    console.log("Countline: ", countLine);
+
+    // Parse each dictionary entry.
+    // Each line is expected in the form: word/flags (or just word)
+    const set = new Set<string>();
+    //detect duplicate words
+    let count = 0;
+    entries.forEach((entry) => {
+      const [word] = entry.split("/");
+
+      if (set.has(word)) {
+        count++;
+        console.log("word already exists", word);
+      } else set.add(word);
+    });
+
+    console.log("set size", set.size);
+    console.log("set", set);
+    console.log("duplicate words", count);
+
+    return { success: true, count: set.size };
+  } catch (error) {
+    console.error("Error syncing .dic file:", error);
+    return { success: false, error: error };
+  }
+}
+
+export async function exportDicFileAction(language: Language) {
+  // Validate parameters to prevent directory traversal attacks
+  const lang_name_code = formatLanguageIdentifier(language);
+  if (!["uz_Latn_UZ", "uz_Cyrl_UZ"].includes(lang_name_code)) {
+    return { success: false, error: "Invalid language or type" };
+  }
+
+  try {
+    //create new downloadable file
+    const folderPath = path.join(
+      DICTIONARY_BASE_PATH_EXPORTED,
+      `${lang_name_code}`,
+    );
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, {
+        recursive: true,
+      });
+    }
+
+    const filePath = path.join(folderPath, `${lang_name_code}.dic`);
+
+    const words = await db
+      .select()
+      .from(dictionaryEntries)
+      .orderBy(dictionaryEntries.word);
+    const lines = words.map((word) => {
+      const pfxs = word.pfxs?.join("") || "";
+      const sfxs = word.sfxs?.join("") || "";
+      const affixes = pfxs + sfxs;
+      return `${word.word}/${affixes}`;
+    });
+
+    // create file if not exists and write lines to it
+    fs.writeFileSync(filePath, words.length + "\n" + lines.join("\n"), "utf8");
+
+    return { success: true, name: words.length };
+  } catch (error) {
+    console.error("Error syncing .dic file:", error);
+    return { success: false, error: error };
+  }
+}
+
+async function saveDictionaryEntries(entries: NewDictionaryEntry[]) {
+  try {
+    await db.insert(dictionaryEntries).values(entries);
+  } catch (error) {
+    console.error("Error saving dictionary entries:", error);
+    throw new Error("Failed to save dictionary entries");
+  }
+}
+
+export async function syncAffFileAction(language: Language) {
+  const lang_name_code = formatLanguageIdentifier(language);
+  if (!["uz_Latn_UZ", "uz_Cyrl_UZ"].includes(lang_name_code)) {
+    return { success: false, error: "Invalid language or type" };
+  }
+
+  try {
+    const filePath = path.join(
+      DICTIONARY_BASE_PATH,
+      lang_name_code,
+      `${lang_name_code}.aff`,
     );
     const sp = new Dictionary();
 
@@ -82,7 +191,7 @@ export async function syncAffFileAction(language: string) {
         const [res] = await tx
           .insert(affixGroups)
           .values({
-            lang_id: 1,
+            lang_id: language.id,
             type: rule.type,
             flag,
             multiUse: rule.combineable,
@@ -100,7 +209,7 @@ export async function syncAffFileAction(language: string) {
               .from(affixGroups)
               .where(
                 and(
-                  eq(affixGroups.lang_id, 1), // Ensure correct language
+                  eq(affixGroups.lang_id, language.id), // Ensure correct language
                   eq(affixGroups.type, rule.type as "SFX" | "PFX"), // Ensure correct affix type (PFX/SFX)
                   eq(affixGroups.flag, flag), // Ensure correct flag
                 ),

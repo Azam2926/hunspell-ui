@@ -14,15 +14,17 @@ import { DataGrid, DataGridContainer } from "@/components/reui/data-grid";
 import { DataGridPagination } from "@/components/reui/data-grid-pagination";
 import { DataGridTable } from "@/components/reui/data-grid-table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { AffixRule } from "@/lib/db/schema";
+import { AffixRule, Language } from "@/lib/db/schema";
 import { DataGridColumnHeader } from "@/components/reui/data-grid-column-header";
+import { useLanguage } from "@/contexts/language/LanguageContext";
 
 interface AffixRulesTableProps {
   getDataAction: (
+    language: Language,
     state: PaginationState,
     sorting: SortingState,
   ) => Promise<AffixRule[]>;
-  getCountAction: () => Promise<number>;
+  getCountAction: (language: Language) => Promise<number>;
 }
 
 export default function AffixRulesTable({
@@ -36,14 +38,16 @@ export default function AffixRulesTable({
     pageSize: 10, // Increased default page size
   });
   const [sorting, setSorting] = useState<SortingState>([]);
+  const { currentLanguage } = useLanguage();
 
   // Fetch data and total count
   useEffect(() => {
     const fetchData = async () => {
+      if (!currentLanguage) return;
       try {
         const [fetchedData, count] = await Promise.all([
-          getDataAction(pagination, sorting),
-          getCountAction(),
+          getDataAction(currentLanguage, pagination, sorting),
+          getCountAction(currentLanguage),
         ]);
         setData(fetchedData);
         setTotalCount(count);
@@ -53,7 +57,7 @@ export default function AffixRulesTable({
     };
 
     fetchData();
-  }, [pagination, sorting]);
+  }, [pagination, sorting, currentLanguage]);
 
   const columns = useMemo<ColumnDef<AffixRule>[]>(
     () => [

@@ -14,11 +14,15 @@ import { DataGrid, DataGridContainer } from "@/components/reui/data-grid";
 import { DataGridPagination } from "@/components/reui/data-grid-pagination";
 import { DataGridTable } from "@/components/reui/data-grid-table";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { AffixGroup } from "@/lib/db/schema";
+import { AffixGroup, Language } from "@/lib/db/schema";
+import { useLanguage } from "@/contexts/language/LanguageContext";
 
 interface AffixGroupTableProps {
-  getDataAction: (state: PaginationState) => Promise<AffixGroup[]>;
-  getCountAction: () => Promise<number>;
+  getDataAction: (
+    language: Language,
+    state: PaginationState,
+  ) => Promise<AffixGroup[]>;
+  getCountAction: (language: Language) => Promise<number>;
 }
 
 export default function AffixGroupTable({
@@ -32,14 +36,16 @@ export default function AffixGroupTable({
     pageSize: 10, // Increased default page size
   });
   const [sorting, setSorting] = useState<SortingState>([]);
+  const { currentLanguage } = useLanguage();
 
   // Fetch data and total count
   useEffect(() => {
     const fetchData = async () => {
+      if (!currentLanguage) return;
       try {
         const [fetchedData, count] = await Promise.all([
-          getDataAction(pagination),
-          getCountAction(),
+          getDataAction(currentLanguage, pagination),
+          getCountAction(currentLanguage),
         ]);
         setData(fetchedData);
         setTotalCount(count);
@@ -49,7 +55,7 @@ export default function AffixGroupTable({
     };
 
     fetchData();
-  }, [pagination]);
+  }, [pagination, currentLanguage]);
 
   const columns = useMemo<ColumnDef<AffixGroup>[]>(
     () => [
