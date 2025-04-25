@@ -23,7 +23,7 @@ import { Button } from "@/components/reui/button";
 import { useLanguage } from "@/contexts/language/LanguageContext";
 import { Language } from "@/lib/db/schema";
 import { SearchWord } from "@/app/dictionaries/components/search-word";
-import Syncer from "@/app/dictionaries/components/syncer";
+import SyncerExporter from "@/app/dictionaries/components/syncer-exporter";
 
 interface WordsTableProps {
   getDataAction: (
@@ -76,7 +76,6 @@ export default function WordsTable({
     pageSize,
   ]: any[]) => {
     if (!currentLanguage) return { data: [], count: 0 };
-    console.log("currentLanguage inside", currentLanguage);
     const parsedSorting = JSON.parse(sortingStr) as SortingState;
 
     const [data, count] = await Promise.all([
@@ -233,7 +232,7 @@ export default function WordsTable({
             </div>
           )}
 
-          <Syncer />
+          <SyncerExporter />
         </div>
 
         {/* Loading and empty states */}

@@ -20,7 +20,6 @@ export interface GroupRules {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  console.log("searchParams", searchParams);
   const sfxs =
     searchParams
       .get("sfxs")
@@ -59,7 +58,6 @@ export async function GET(request: NextRequest) {
         eq(affixGroups.lang_id, language),
       ),
     );
-  console.log("data", data);
   const n = data.reduce((acc, { group, rule }) => {
     if (!group) return acc;
 

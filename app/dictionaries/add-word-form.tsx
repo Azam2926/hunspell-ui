@@ -33,6 +33,7 @@ import {
 import { AffixGroup } from "@/lib/db/schema"; // Define the form schema
 import { useLanguage } from "@/contexts/language/LanguageContext";
 import WordViewer from "@/app/dictionaries/components/word-viewer";
+import { LatinCyrillicConverter } from "@/components/latin-cyrillic-converter";
 
 // Define the form schema
 const formSchema = z.object({
@@ -144,7 +145,7 @@ export function AddWordForm({ editMode = false, initialData }: WordFormProps) {
         <CardDescription>
           {editMode
             ? "Lug'atdagi so'zni yangilash."
-            : "Lug'atga ixtiyoriy affiks bayroqlari bilan yangi so'z qo'shish."}
+            : "Lug'atga ixtiyoriy affiks qo'shimchalari bilan yangi so'z qo'shish."}
         </CardDescription>
       </CardHeader>
       <CardContent className="sm:max-w-[700px]">
@@ -157,7 +158,28 @@ export function AddWordForm({ editMode = false, initialData }: WordFormProps) {
                 <FormItem>
                   <FormLabel>So&apos;z</FormLabel>
                   <FormControl>
-                    <Input placeholder="So'z kiriting" {...field} />
+                    <Input
+                      placeholder="So'z kiriting"
+                      {...field}
+                      onChange={(e) => {
+                        if (!currentLanguage)
+                          return toast.error("You need to select language");
+
+                        let convertedText: string = "";
+
+                        if (currentLanguage.id == 1)
+                          convertedText = LatinCyrillicConverter.toLatin(
+                            e.target.value,
+                          );
+
+                        if (currentLanguage.id === 2)
+                          convertedText = LatinCyrillicConverter.toCyrillic(
+                            e.target.value,
+                          );
+
+                        form.setValue("word", convertedText);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

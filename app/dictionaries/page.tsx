@@ -22,12 +22,12 @@ export default async function Page() {
           <AddWordForm />
           <AffixTable />
         </div>
-        {/*<Suspense fallback={<div>Loading...</div>}>*/}
-        {/*  <WordsTable*/}
-        {/*    getDataAction={getDataAction}*/}
-        {/*    getCountAction={getCountAction}*/}
-        {/*  />*/}
-        {/*</Suspense>*/}
+        <Suspense fallback={<div>Loading...</div>}>
+          <WordsTable
+            getDataAction={getDataAction}
+            getCountAction={getCountAction}
+          />
+        </Suspense>
       </div>
     </div>
   );

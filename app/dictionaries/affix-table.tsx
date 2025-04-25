@@ -40,7 +40,7 @@ export default function AffixTable() {
   return (
     <div className="flex grow gap-2">
       {currentLanguage && affixGroups.pfxs.length > 0 && (
-        <Card className="w-full">
+        <Card className="w-full max-w-[400px] min-w-[300px]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2" title="Prefikslar">
               <Info className="opacity-50" />
@@ -66,7 +66,7 @@ export default function AffixTable() {
         </Card>
       )}
       {currentLanguage && affixGroups.sfxs.length > 0 && (
-        <Card className="w-full">
+        <Card className="w-full max-w-[400px] min-w-[300px]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2" title="Prefikslar">
               <Info className="opacity-50" />

@@ -148,25 +148,18 @@ function DataGridTableDnd<TData>({
           <DataGridTableHead>
             {table
               .getHeaderGroups()
-              .map((headerGroup: HeaderGroup<TData>, index) => {
-                console.log(
-                  "table.getState().columnOrder:",
-                  table.getState().columnOrder,
-                );
-
-                return (
-                  <DataGridTableHeadRow headerGroup={headerGroup} key={index}>
-                    <SortableContext
-                      items={table.getState().columnOrder}
-                      strategy={horizontalListSortingStrategy}
-                    >
-                      {headerGroup.headers.map((header, index) => (
-                        <DataGridTableDndHeader header={header} key={index} />
-                      ))}
-                    </SortableContext>
-                  </DataGridTableHeadRow>
-                );
-              })}
+              .map((headerGroup: HeaderGroup<TData>, index) => (
+                <DataGridTableHeadRow headerGroup={headerGroup} key={index}>
+                  <SortableContext
+                    items={table.getState().columnOrder}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    {headerGroup.headers.map((header, index) => (
+                      <DataGridTableDndHeader header={header} key={index} />
+                    ))}
+                  </SortableContext>
+                </DataGridTableHeadRow>
+              ))}
           </DataGridTableHead>
 
           {(props.tableLayout?.stripped || !props.tableLayout?.rowBorder) && (

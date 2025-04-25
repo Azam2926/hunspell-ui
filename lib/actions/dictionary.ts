@@ -21,7 +21,6 @@ export async function getDataAction(
   sorting: SortingState,
   state?: PaginationState,
 ): Promise<DictionaryData[]> {
-  console.log("language2:", language);
   if (!sorting || sorting?.length === 0) {
     sorting = [{ id: "id", desc: true }];
   }

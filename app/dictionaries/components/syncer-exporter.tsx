@@ -7,8 +7,9 @@ import {
 } from "@/lib/actions/syncAction";
 import { useLanguage } from "@/contexts/language/LanguageContext";
 import { Loader2 } from "lucide-react";
+import { formatLanguageIdentifier } from "@/lib/utils";
 
-export default function Syncer() {
+export default function SyncerExporter() {
   const { currentLanguage } = useLanguage();
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -31,8 +32,31 @@ export default function Syncer() {
     setIsExporting(true);
 
     try {
-      await exportDicFileAction(currentLanguage);
-      toast.success("Dictionary exported successfully");
+      const result = await exportDicFileAction(currentLanguage);
+
+      if (result.success && result.content) {
+        // Create a blob from the dictionary content
+        const blob = new Blob([result.content], { type: "text/plain" });
+
+        // Create a URL for the blob
+        const url = URL.createObjectURL(blob);
+
+        // Create a temporary anchor element for downloading
+        const a = document.createElement("a");
+        a.href = url;
+        a.download =
+          result.filename || `${formatLanguageIdentifier(currentLanguage)}.dic`;
+
+        // Append to body, click the link, and clean up
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success("Dictionary downloaded successfully");
+      } else {
+        throw new Error(result.error || "Export failed");
+      }
     } catch (err) {
       console.log("Error exporting dictionary", err);
       toast.error("Failed to export dictionary");

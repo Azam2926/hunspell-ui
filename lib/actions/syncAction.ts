@@ -28,7 +28,6 @@ export async function syncDicFileAction(language: Language) {
   if (!["uz_Latn_UZ", "uz_Cyrl_UZ"].includes(lang_name_code)) {
     return { success: false, error: "Invalid language or type" };
   }
-  console.log("lang_name_code", lang_name_code);
   try {
     const filePath = path.join(
       DICTIONARY_BASE_PATH,
@@ -102,10 +101,6 @@ export async function countWordsAction(language: string) {
       } else set.add(word);
     });
 
-    console.log("set size", set.size);
-    console.log("set", set);
-    console.log("duplicate words", count);
-
     return { success: true, count: set.size };
   } catch (error) {
     console.error("Error syncing .dic file:", error);
@@ -121,38 +116,37 @@ export async function exportDicFileAction(language: Language) {
   }
 
   try {
-    //create new downloadable file
-    const folderPath = path.join(
-      DICTIONARY_BASE_PATH_EXPORTED,
-      `${lang_name_code}`,
-    );
-    if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, {
-        recursive: true,
-      });
-    }
-
-    const filePath = path.join(folderPath, `${lang_name_code}.dic`);
-
-    const words = await db
-      .select()
-      .from(dictionaryEntries)
-      .orderBy(dictionaryEntries.word);
-    const lines = words.map((word) => {
-      const pfxs = word.pfxs?.join("") || "";
-      const sfxs = word.sfxs?.join("") || "";
-      const affixes = pfxs + sfxs;
-      return `${word.word}/${affixes}`;
-    });
-
-    // create file if not exists and write lines to it
-    fs.writeFileSync(filePath, words.length + "\n" + lines.join("\n"), "utf8");
-
-    return { success: true, name: words.length };
+    const content = await getDictionaryContent(language);
+    return {
+      success: true,
+      content: content,
+      filename: `${lang_name_code}.dic`,
+    };
   } catch (error) {
-    console.error("Error syncing .dic file:", error);
+    console.error("Error exporting dictionary:", error);
     return { success: false, error: error };
   }
+}
+
+// Function to generate dictionary content without saving to filesystem
+export async function getDictionaryContent(language: Language) {
+  const lang_name_code = formatLanguageIdentifier(language);
+
+  const words = await db
+    .select()
+    .from(dictionaryEntries)
+    .where(eq(dictionaryEntries.langId, language.id))
+    .orderBy(dictionaryEntries.word);
+
+  const lines = words.map((word) => {
+    const pfxs = word.pfxs?.join("") || "";
+    const sfxs = word.sfxs?.join("") || "";
+    const affixes = pfxs + sfxs;
+    return `${word.word}/${affixes}`;
+  });
+
+  // Return content as string
+  return words.length + "\n" + lines.join("\n");
 }
 
 async function saveDictionaryEntries(entries: NewDictionaryEntry[]) {
