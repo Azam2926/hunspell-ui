@@ -14,7 +14,7 @@ export default function LanguageShower() {
   }
 
   return (
-    <Button variant="outline" className="w-[200px]">
+    <Button variant="outline" id="lang-shower" className="w-[200px]">
       <Avatar className="mr-2 h-5 w-5">
         <AvatarImage
           src={`https://avatar.vercel.sh/${currentLanguage?.code}.png`}
